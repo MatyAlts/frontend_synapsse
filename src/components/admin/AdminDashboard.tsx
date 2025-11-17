@@ -6,7 +6,9 @@ import { adminProductService } from "@/services/adminProductService";
 import { authService } from "@/services/authService";
 import { useRouter } from "next/navigation";
 import ProductModal from "./ProductModal";
-import { Edit, Trash2, Plus, Search, LogOut, Package } from "lucide-react";
+import CategoryManager from "./CategoryManager";
+import CouponManager from "./CouponManager";
+import { Edit, Trash2, Plus, Search, LogOut, Package, Home } from "lucide-react";
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -130,6 +132,14 @@ export default function AdminDashboard() {
               {authService.getUser()?.email}
             </span>
             <button
+              onClick={() => router.push('/')}
+              className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm md:text-base whitespace-nowrap"
+            >
+              <Home size={16} className="md:w-[18px] md:h-[18px]" />
+              <span className="hidden sm:inline">Volver al Inicio</span>
+              <span className="sm:hidden">Inicio</span>
+            </button>
+            <button
               onClick={handleLogout}
               className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm md:text-base whitespace-nowrap"
             >
@@ -148,6 +158,12 @@ export default function AdminDashboard() {
             {error}
           </div>
         )}
+
+        {/* Category Manager */}
+        <CategoryManager />
+
+        {/* Coupon Manager */}
+        <CouponManager />
 
         {/* Actions Bar */}
         <div className="bg-white rounded-xl shadow-md p-4 md:p-6 mb-6">

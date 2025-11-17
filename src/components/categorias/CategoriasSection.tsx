@@ -1,99 +1,55 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ShoppingBag, ChevronRight, Sparkles, Sun, Droplets, Leaf, Heart, Moon, Search, MessageCircle } from 'lucide-react';
-import { Category } from '@/redux/types';
+import { Category as ReduxCategory } from '@/redux/types';
+import { Category, categoryService } from '@/services/categoryService';
 
 
 const CategoriasSection: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  const categories: Category[] = [
-    {
-      id: 1,
-      name: 'Hidratación Profunda',
-      description: 'Productos formulados para nutrir e hidratar tu piel en profundidad, restaurando su equilibrio natural.',
-      icon: <Droplets size={32} />,
-      productCount: 12,
-      image: '💧',
-      color: 'from-blue-400 to-blue-600',
-      benefits: ['Hidratación 24h', 'Piel suave', 'Nutrición intensa'],
-    },
-    {
-      id: 2,
-      name: 'Anti-Edad',
-      description: 'Fórmulas especializadas para prevenir y reducir los signos visibles del envejecimiento.',
-      icon: <Sparkles size={32} />,
-      productCount: 8,
-      image: '✨',
-      color: 'from-purple-400 to-purple-600',
-      benefits: ['Reduce arrugas', 'Firmeza', 'Luminosidad'],
-    },
-    {
-      id: 3,
-      name: 'Protección Solar',
-      description: 'Cuida tu piel del sol con nuestras fórmulas naturales de amplio espectro.',
-      icon: <Sun size={32} />,
-      productCount: 6,
-      image: '☀️',
-      color: 'from-orange-400 to-orange-600',
-      benefits: ['SPF 50+', 'No comedogénico', 'Resistente al agua'],
-    },
-    {
-      id: 4,
-      name: 'Cuidado Natural',
-      description: 'Productos 100% naturales y veganos elaborados con ingredientes orgánicos certificados.',
-      icon: <Leaf size={32} />,
-      productCount: 15,
-      image: '🌿',
-      color: 'from-green-400 to-green-600',
-      benefits: ['100% natural', 'Vegano', 'Cruelty-free'],
-    },
-    {
-      id: 5,
-      name: 'Cuidado Nocturno',
-      description: 'Tratamientos intensivos diseñados para regenerar tu piel mientras descansás.',
-      icon: <Moon size={32} />,
-      productCount: 7,
-      image: '🌙',
-      color: 'from-indigo-400 to-indigo-600',
-      benefits: ['Regeneración', 'Reparación', 'Tratamiento intensivo'],
-    },
-    {
-      id: 6,
-      name: 'Piel Sensible',
-      description: 'Fórmulas suaves especialmente desarrolladas para pieles delicadas y reactivas.',
-      icon: <Heart size={32} />,
-      productCount: 9,
-      image: '💗',
-      color: 'from-pink-400 to-pink-600',
-      benefits: ['Hipoalergénico', 'Sin fragancias', 'Dermatológicamente testeado'],
-    },
-    {
-      id: 7,
-      name: 'Limpieza Facial',
-      description: 'Productos para limpiar profundamente sin resecar, eliminando impurezas y maquillaje.',
-      icon: <Sparkles size={32} />,
-      productCount: 10,
-      image: '✨',
-      color: 'from-teal-400 to-teal-600',
-      benefits: ['Limpieza profunda', 'Remueve maquillaje', 'Equilibra pH'],
-    },
-    {
-      id: 8,
-      name: 'Cuidado de Labios',
-      description: 'Bálsamos y tratamientos nutritivos para mantener tus labios suaves e hidratados.',
-      icon: <Heart size={32} />,
-      productCount: 5,
-      image: '💋',
-      color: 'from-red-400 to-red-600',
-      benefits: ['Nutrición intensa', 'Protección UV', 'Larga duración'],
-    },
-  ];
+  useEffect(() => {
+    loadCategories();
+  }, []);
 
-  const filteredCategories = categories.filter(category =>
+  const loadCategories = async () => {
+    try {
+      setLoading(true);
+      const data = await categoryService.getAllCategories();
+      setCategories(data);
+    } catch (err) {
+      console.error("Error loading categories:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCategoryClick = (categoryName: string) => {
+    // Navegar a la tienda con el parámetro de categoría
+    router.push(`/shop?category=${encodeURIComponent(categoryName)}`);
+  };
+
+  // Categorías de respaldo si no hay en la BD
+  const defaultCategories: Category[] = [];
+
+  const displayCategories = categories.length > 0 ? categories : defaultCategories;
+
+  const filteredCategories = displayCategories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     category.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[url('/plant2.png')] bg-cover bg-center flex items-center justify-center">
+        <div className="text-[#535657] text-lg">Cargando categorías...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen  bg-[url('/plant2.png')] bg-cover bg-center">
@@ -127,14 +83,14 @@ const CategoriasSection: React.FC = () => {
               className="group bg-white/50 backdrop-blur-sm rounded-3xl border border-green-100 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer"
             >
               {/* Header with gradient */}
-              <div className={`bg-gradient-to-br ${category.color} p-8 text-white relative overflow-hidden`}>
+              <div className={`bg-gradient-to-br ${category.gradientColors} p-8 text-white relative overflow-hidden`}>
                 <div className="absolute top-0 right-0 text-8xl opacity-20 -mr-4 -mt-4">
-                  {category.image}
+                  {category.imageEmoji}
                 </div>
                 <div className="relative z-10">
-                  <div className="mb-4">{category.icon}</div>
+                  <div className="mb-4 text-4xl">{category.imageEmoji}</div>
                   <h3 className="text-2xl font-light mb-2">{category.name}</h3>
-                  <p className="text-sm opacity-90">{category.productCount} productos</p>
+                  <p className="text-sm opacity-90">{category.productCount} {category.productCount === 1 ? 'producto' : 'productos'}</p>
                 </div>
               </div>
 
@@ -144,19 +100,12 @@ const CategoriasSection: React.FC = () => {
                   {category.description}
                 </p>
 
-                {/* Benefits */}
-                <div className="space-y-2 mb-6">
-                  {category.benefits.map((benefit, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-sm text-gray-700">
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                      {benefit}
-                    </div>
-                  ))}
-                </div>
-
                 {/* Action Button */}
-                <button className=" cursor-pointer w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-50 to-green-100 text-green-700 rounded-xl hover:from-green-100 hover:to-green-200 transition-all font-medium group-hover:gap-3">
-                  Explorar productos
+                <button 
+                  onClick={() => handleCategoryClick(category.name)}
+                  className="cursor-pointer w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-50 to-green-100 text-green-700 rounded-xl hover:from-green-100 hover:to-green-200 transition-all font-medium group-hover:gap-3"
+                >
+                  Ver productos
                   <ChevronRight size={18} />
                 </button>
               </div>

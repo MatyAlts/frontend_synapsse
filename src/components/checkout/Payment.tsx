@@ -10,9 +10,10 @@ initMercadoPago('APP_USR-f4ab45ee-2675-4bef-93ce-c96b98aefdec', {
 interface PaymentProps {
   items: CartItem[]; 
   shippingInfo: Omit<FormData, 'cardNumber' | 'cardName' | 'expiryDate' | 'cvv'>;
+  appliedCoupon?: {discount: number, code: string} | null;
 }
 
-const Payment: React.FC<PaymentProps> = ({ items, shippingInfo }) => {
+const Payment: React.FC<PaymentProps> = ({ items, shippingInfo, appliedCoupon }) => {
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,11 @@ const Payment: React.FC<PaymentProps> = ({ items, shippingInfo }) => {
         const response = await fetch('/api/create-preference', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items, shippingInfo }),
+          body: JSON.stringify({ 
+            items, 
+            shippingInfo,
+            coupon: appliedCoupon 
+          }),
         });
 
         if (!response.ok) {
@@ -45,7 +50,7 @@ const Payment: React.FC<PaymentProps> = ({ items, shippingInfo }) => {
     };
 
     createPreference();
-  }, [items, shippingInfo]);
+  }, [items, shippingInfo, appliedCoupon]);
 
   const renderContent = () => {
     if (loading) {

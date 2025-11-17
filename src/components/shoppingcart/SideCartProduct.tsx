@@ -21,7 +21,10 @@ export default function ProductCartCard({ item }: ProductCartCardProps) {
     const [isLoading, setIsLoading] = useState(false);
     const productKey = item.product.id;
 
-    const handleIncreaseQuantity = async () => {
+    const handleIncreaseQuantity = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        console.log('Aumentar cantidad clicked');
+        
         if (authService.isAuthenticated()) {
             try {
                 setIsLoading(true);
@@ -30,16 +33,22 @@ export default function ProductCartCard({ item }: ProductCartCardProps) {
                 
                 if (cartItem) {
                     const updatedCart = await cartService.updateItem(cartItem.id, cartItem.quantity + 1);
-                    dispatch(setCart(updatedCart.items.map(i => ({
-                        product: {
-                            id: i.product.id.toString(),
-                            title: i.product.name,
-                            description: i.product.description,
-                            price: i.product.price.toString(),
-                            img: i.product.imageUrl
-                        },
-                        quantity: i.quantity
-                    }))));
+                    dispatch(setCart({
+                        items: updatedCart.items.map(i => ({
+                            product: {
+                                id: i.product.id.toString(),
+                                title: i.product.name,
+                                description: i.product.description,
+                                price: i.product.price.toString(),
+                                img: i.product.imageUrl
+                            },
+                            quantity: i.quantity
+                        })),
+                        isOpen: false
+                    }));
+                } else {
+                    // Si no encuentra el item en el backend, actualizar solo Redux
+                    dispatch(increaseQuantity({ productKey, amount: 1 }));
                 }
             } catch (error) {
                 console.error('Error al actualizar cantidad:', error);
@@ -52,7 +61,10 @@ export default function ProductCartCard({ item }: ProductCartCardProps) {
         }
     }
 
-    const handleDecreaseQuantity = async () => {
+    const handleDecreaseQuantity = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        console.log('Disminuir cantidad clicked');
+        
         if (authService.isAuthenticated()) {
             try {
                 setIsLoading(true);
@@ -63,20 +75,39 @@ export default function ProductCartCard({ item }: ProductCartCardProps) {
                     const newQuantity = cartItem.quantity - 1;
                     if (newQuantity <= 0) {
                         // Si la cantidad llega a 0, eliminar el item
-                        await handleRemoveItem();
+                        const updatedCart = await cartService.removeItem(cartItem.id);
+                        dispatch(setCart({
+                            items: updatedCart.items.map(i => ({
+                                product: {
+                                    id: i.product.id.toString(),
+                                    title: i.product.name,
+                                    description: i.product.description,
+                                    price: i.product.price.toString(),
+                                    img: i.product.imageUrl
+                                },
+                                quantity: i.quantity
+                            })),
+                            isOpen: false
+                        }));
                     } else {
                         const updatedCart = await cartService.updateItem(cartItem.id, newQuantity);
-                        dispatch(setCart(updatedCart.items.map(i => ({
-                            product: {
-                                id: i.product.id.toString(),
-                                title: i.product.name,
-                                description: i.product.description,
-                                price: i.product.price.toString(),
-                                img: i.product.imageUrl
-                            },
-                            quantity: i.quantity
-                        }))));
+                        dispatch(setCart({
+                            items: updatedCart.items.map(i => ({
+                                product: {
+                                    id: i.product.id.toString(),
+                                    title: i.product.name,
+                                    description: i.product.description,
+                                    price: i.product.price.toString(),
+                                    img: i.product.imageUrl
+                                },
+                                quantity: i.quantity
+                            })),
+                            isOpen: false
+                        }));
                     }
+                } else {
+                    // Si no encuentra el item en el backend, actualizar solo Redux
+                    dispatch(decreaseQuantity({ productKey, amount: 1 }));
                 }
             } catch (error) {
                 console.error('Error al actualizar cantidad:', error);
@@ -89,7 +120,12 @@ export default function ProductCartCard({ item }: ProductCartCardProps) {
         }
     }
 
-    const handleRemoveItem = async () => {
+    const handleRemoveItem = async (e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation();
+        }
+        console.log('Eliminar item clicked');
+        
         // Si el usuario está autenticado, eliminar del backend
         if (authService.isAuthenticated()) {
             try {
@@ -102,16 +138,22 @@ export default function ProductCartCard({ item }: ProductCartCardProps) {
                     // Eliminar del backend
                     const updatedCart = await cartService.removeItem(cartItem.id);
                     // Actualizar Redux con la respuesta del backend
-                    dispatch(setCart(updatedCart.items.map(i => ({
-                        product: {
-                            id: i.product.id.toString(),
-                            title: i.product.name,
-                            description: i.product.description,
-                            price: i.product.price.toString(),
-                            img: i.product.imageUrl
-                        },
-                        quantity: i.quantity
-                    }))));
+                    dispatch(setCart({
+                        items: updatedCart.items.map(i => ({
+                            product: {
+                                id: i.product.id.toString(),
+                                title: i.product.name,
+                                description: i.product.description,
+                                price: i.product.price.toString(),
+                                img: i.product.imageUrl
+                            },
+                            quantity: i.quantity
+                        })),
+                        isOpen: false
+                    }));
+                } else {
+                    // Si no encuentra el item en el backend, eliminar solo de Redux
+                    dispatch(removeFromCart(item.product.id));
                 }
             } catch (error) {
                 console.error('Error al eliminar del carrito:', error);
@@ -159,21 +201,30 @@ export default function ProductCartCard({ item }: ProductCartCardProps) {
                         transition={{ duration: 0.29 }}
                         className="px-3 pb-3 text-sm text-gray-600"
                     >
-                        <div>
+                        <div onClick={(e) => e.stopPropagation()}>
                             <p className="mb-3 text-end text-xs font-thin text-[#535657]">{item.product.description}</p>
                             <div className="flex flex-row items-center justify-end gap-6">
-                                <GoPlus
+                                <button
                                     onClick={handleIncreaseQuantity}
-                                    className={`text-xl cursor-pointer hover:scale-125 transition-all duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
-                                />
-                                <FiMinus
+                                    disabled={isLoading}
+                                    className={`p-2 rounded-lg hover:bg-green-50 transition-all duration-300 ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                >
+                                    <GoPlus className="text-xl hover:scale-125 transition-all duration-300" />
+                                </button>
+                                <button
                                     onClick={handleDecreaseQuantity}
-                                    className={`text-xl cursor-pointer hover:scale-125 transition-all duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
-                                />
-                                <PiTrashLight
+                                    disabled={isLoading}
+                                    className={`p-2 rounded-lg hover:bg-yellow-50 transition-all duration-300 ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                >
+                                    <FiMinus className="text-xl hover:scale-125 transition-all duration-300" />
+                                </button>
+                                <button
                                     onClick={handleRemoveItem}
-                                    className={`text-xl cursor-pointer hover:scale-125 transition-all duration-300 text-red-500 ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
-                                />
+                                    disabled={isLoading}
+                                    className={`p-2 rounded-lg hover:bg-red-50 transition-all duration-300 ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                >
+                                    <PiTrashLight className="text-xl hover:scale-125 transition-all duration-300 text-red-500" />
+                                </button>
                             </div>
                         </div>
                     </motion.div>

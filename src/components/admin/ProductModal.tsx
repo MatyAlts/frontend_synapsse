@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { Product } from "@/services/productService";
 import { ProductRequest, adminProductService } from "@/services/adminProductService";
-import { X } from "lucide-react";
+import { categoryService } from "@/services/categoryService";
+import { X, Plus } from "lucide-react";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -24,8 +25,13 @@ export default function ProductModal({ isOpen, onClose, onSuccess, product }: Pr
     stock: 0
   });
   const [categoryInput, setCategoryInput] = useState("");
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
 
   useEffect(() => {
+    if (isOpen) {
+      loadCategories();
+    }
     if (product) {
       setFormData({
         name: product.name,
@@ -46,7 +52,20 @@ export default function ProductModal({ isOpen, onClose, onSuccess, product }: Pr
       });
     }
     setError("");
+    setShowNewCategoryInput(false);
+    setCategoryInput("");
   }, [product, isOpen]);
+
+  const loadCategories = async () => {
+    try {
+      const categoriesData = await categoryService.getAllCategories();
+      // Extraer solo los nombres de las categorías
+      const categoryNames = categoriesData.map(cat => cat.name);
+      setAvailableCategories(categoryNames.sort());
+    } catch (err) {
+      console.error("Error loading categories:", err);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -56,13 +75,24 @@ export default function ProductModal({ isOpen, onClose, onSuccess, product }: Pr
     }));
   };
 
-  const handleAddCategory = () => {
-    if (categoryInput.trim() && !formData.categories.includes(categoryInput.trim())) {
+  const handleAddCategory = (category: string) => {
+    if (category.trim() && !formData.categories.includes(category.trim())) {
       setFormData(prev => ({
         ...prev,
-        categories: [...prev.categories, categoryInput.trim()]
+        categories: [...prev.categories, category.trim()]
       }));
+    }
+  };
+
+  const handleAddNewCategory = () => {
+    if (categoryInput.trim() && !formData.categories.includes(categoryInput.trim())) {
+      handleAddCategory(categoryInput.trim());
+      // Agregar a la lista de categorías disponibles si no existe
+      if (!availableCategories.includes(categoryInput.trim())) {
+        setAvailableCategories(prev => [...prev, categoryInput.trim()].sort());
+      }
       setCategoryInput("");
+      setShowNewCategoryInput(false);
     }
   };
 
@@ -217,24 +247,9 @@ export default function ProductModal({ isOpen, onClose, onSuccess, product }: Pr
             <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">
               Categorías
             </label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={categoryInput}
-                onChange={(e) => setCategoryInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCategory())}
-                className="flex-1 px-3 md:px-4 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Agregar categoría"
-              />
-              <button
-                type="button"
-                onClick={handleAddCategory}
-                className="px-3 md:px-4 py-2 text-sm md:text-base bg-green-600 text-white rounded-lg hover:bg-green-700 transition whitespace-nowrap"
-              >
-                Agregar
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
+            
+            {/* Categorías seleccionadas */}
+            <div className="flex flex-wrap gap-2 mb-3">
               {formData.categories.map((category, index) => (
                 <span
                   key={index}
@@ -251,6 +266,68 @@ export default function ProductModal({ isOpen, onClose, onSuccess, product }: Pr
                 </span>
               ))}
             </div>
+
+            {/* Selector de categorías existentes */}
+            {availableCategories.length > 0 && (
+              <div className="mb-2">
+                <label className="block text-xs text-gray-600 mb-1">Categorías existentes:</label>
+                <div className="flex flex-wrap gap-2 mb-2 max-h-32 overflow-y-auto p-2 border border-gray-200 rounded-lg bg-gray-50">
+                  {availableCategories
+                    .filter(cat => !formData.categories.includes(cat))
+                    .map((category, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => handleAddCategory(category)}
+                        className="px-3 py-1 bg-white border border-green-300 text-green-700 rounded-full text-sm hover:bg-green-50 transition"
+                      >
+                        + {category}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Agregar nueva categoría */}
+            {!showNewCategoryInput ? (
+              <button
+                type="button"
+                onClick={() => setShowNewCategoryInput(true)}
+                className="flex items-center gap-1 px-3 py-2 text-sm text-green-600 hover:text-green-700 border border-green-300 rounded-lg hover:bg-green-50 transition"
+              >
+                <Plus size={16} />
+                Nueva categoría
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={categoryInput}
+                  onChange={(e) => setCategoryInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddNewCategory())}
+                  className="flex-1 px-3 md:px-4 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="Nombre de la categoría"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleAddNewCategory}
+                  className="px-3 md:px-4 py-2 text-sm md:text-base bg-green-600 text-white rounded-lg hover:bg-green-700 transition whitespace-nowrap"
+                >
+                  Agregar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNewCategoryInput(false);
+                    setCategoryInput("");
+                  }}
+                  className="px-3 md:px-4 py-2 text-sm md:text-base bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Botones */}

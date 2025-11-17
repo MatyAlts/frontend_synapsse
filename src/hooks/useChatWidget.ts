@@ -69,7 +69,7 @@ export const useChatWidget = () => {
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 segundos para IA
 
       // Construir URL con query parameters
-      const url = new URL('http://localhost:5678/webhook/chat-widget');
+      const url = new URL('https://belmontelucero-n8n.326kz3.easypanel.host/webhook/chat-widget');
       url.searchParams.append('session_id', sessionId);
       url.searchParams.append('message', text);
 
@@ -156,7 +156,7 @@ export const useChatWidget = () => {
     const checkStatus = async () => {
       try {
         // Health check con GET
-        const url = new URL('http://localhost:5678/webhook/chat-widget');
+        const url = new URL(process.env.NEXT_PUBLIC_CHAT_WEBHOOK_URL || 'https://belmontelucero-n8n.326kz3.easypanel.host/webhook/chat-widget');
         url.searchParams.append('session_id', 'health_check');
         url.searchParams.append('message', 'ping');
 

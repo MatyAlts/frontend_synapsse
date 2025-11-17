@@ -119,7 +119,7 @@ http://localhost:3000/admin
 
 ### 2. **Credenciales de Admin**
 ```
-Email: admin@synapsse.com
+Email: synapsse.com
 Password: Admin1234
 ```
 

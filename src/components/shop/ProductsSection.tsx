@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import ProductCard from "./ProductCard";
 import { productService, Product, PagedResponse } from "@/services/productService";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
@@ -8,39 +8,71 @@ import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 interface ProductsSectionProps {
     searchResults?: Product[] | null;
     isSearching?: boolean;
+    categoryFilter?: string | null;
 }
 
-export default function ProductsSection({ searchResults, isSearching }: ProductsSectionProps){
+export default function ProductsSection({ searchResults, isSearching, categoryFilter }: ProductsSectionProps){
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>("");
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
+    // INICIALIZAR activeCategory directamente con el prop
+    const [activeCategory, setActiveCategory] = useState<string | null>(categoryFilter || null);
+    const loadingRef = useRef(false);
     const pageSize = 10;
 
+    // Sincronizar categoría y resetear página cuando cambia categoryFilter
     useEffect(() => {
-        loadProducts(currentPage);
-    }, [currentPage]);
-
-    const loadProducts = async (page: number) => {
-        try {
-            setLoading(true);
-            setError("");
-            console.log('Fetching products from:', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080');
-            const data: PagedResponse<Product> = await productService.getAllProducts(page, pageSize);
-            console.log('Products received:', data);
-            setProducts(data.content);
-            setTotalPages(data.totalPages);
-            setTotalElements(data.totalElements);
-        } catch (err: any) {
-            console.error("Error loading products:", err);
-            const errorMsg = err.message || "Error al cargar productos";
-            setError(`${errorMsg}. Backend: ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/products`);
-        } finally {
-            setLoading(false);
+        console.log('ProductsSection: Category filter prop changed to:', categoryFilter);
+        if (categoryFilter !== activeCategory) {
+            setActiveCategory(categoryFilter || null);
+            setCurrentPage(0);
         }
-    };
+    }, [categoryFilter, activeCategory]);
+
+    // Cargar productos cuando cambia la página o la categoría activa
+    useEffect(() => {
+        // Prevenir cargas duplicadas simultáneas
+        if (loadingRef.current) {
+            console.log('⚠ Already loading, skipping...');
+            return;
+        }
+
+        const loadProducts = async () => {
+            loadingRef.current = true;
+            try {
+                setLoading(true);
+                setError("");
+                console.log('=== LOADING PRODUCTS ===');
+                console.log('Page:', currentPage, 'Active Category:', activeCategory);
+                
+                let data: PagedResponse<Product>;
+                if (activeCategory) {
+                    console.log('→ Filtering by category:', activeCategory);
+                    data = await productService.getProductsByCategory(activeCategory, currentPage, pageSize);
+                } else {
+                    console.log('→ Loading all products');
+                    data = await productService.getAllProducts(currentPage, pageSize);
+                }
+                
+                console.log('✓ Products loaded:', data.content.length, 'items');
+                setProducts(data.content);
+                setTotalPages(data.totalPages);
+                setTotalElements(data.totalElements);
+            } catch (err: any) {
+                console.error("✗ Error loading products:", err);
+                const errorMsg = err.message || "Error al cargar productos";
+                setError(`${errorMsg}. Backend: ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/products`);
+            } finally {
+                setLoading(false);
+                loadingRef.current = false;
+            }
+        };
+
+        loadProducts();
+    }, [currentPage, activeCategory]);
 
     const handlePreviousPage = () => {
         if (currentPage > 0) {
@@ -83,11 +115,16 @@ export default function ProductsSection({ searchResults, isSearching }: Products
             <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <div className="text-[#535657] text-lg">
                     {searchResults !== null && searchResults !== undefined 
-                        ? 'No se encontraron productos con esa búsqueda' 
+                        ? 'No se encontraron productos con esa búsqueda'
+                        : categoryFilter
+                        ? `No se encontraron productos en la categoría "${categoryFilter}"`
                         : 'No hay productos disponibles'}
                 </div>
-                {searchResults !== null && searchResults !== undefined && (
+                {(searchResults !== null && searchResults !== undefined) && (
                     <p className="text-[#768386] text-sm">Intenta con otros términos de búsqueda</p>
+                )}
+                {categoryFilter && (
+                    <p className="text-[#768386] text-sm">Intenta con otra categoría o quita el filtro</p>
                 )}
             </div>
         );
@@ -137,7 +174,7 @@ export default function ProductsSection({ searchResults, isSearching }: Products
                 ))}
             </div>
             
-            {/* Paginación - solo mostrar si no hay búsqueda activa */}
+            {/* Paginación - mostrar si no hay búsqueda activa (pero sí para filtros de categoría) */}
             {searchResults === null || searchResults === undefined ? (
                 <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 py-6 md:py-8 bg-white">
                     <div className="flex items-center gap-2 md:gap-4">

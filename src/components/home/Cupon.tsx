@@ -1,27 +1,45 @@
 "use client"
-import { ChevronRight, Gift } from "lucide-react";
+import { ChevronRight, Gift, Check, X, Loader2 } from "lucide-react";
 import { useState } from "react";
+
+type StatusType = 'idle' | 'loading' | 'success' | 'error';
 
 export default function Cupon() {
   const [email, setEmail] = useState("");
-
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [status, setStatus] = useState<StatusType>('idle');
+  const [message, setMessage] = useState("");
+  
   const handleCouponSubmit = async (e) => {
     e.preventDefault();
     if (email) {
+      setStatus('loading');
       try {
-        await fetch("http://localhost:5678/webhook/cupon", {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/coupons/request`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ email }),
         });
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
-        setEmail("");
+        
+        const data = await response.json();
+        console.log("Respuesta del cupón:", data);
+        
+        if (response.ok) {
+          setStatus('success');
+          setMessage(data.message || "¡Cupón enviado a tu correo!");
+          setEmail("");
+          // No auto-ocultar el mensaje de éxito, se queda visible
+        } else {
+          setStatus('error');
+          setMessage(data.message || "Error al procesar el cupón");
+          setTimeout(() => setStatus('idle'), 5000);
+        }
       } catch (error) {
-        console.error("Error al enviar cupón:", error);
+        console.error("Error al solicitar cupón:", error);
+        setStatus('error');
+        setMessage("Error de conexión. Intenta nuevamente.");
+        setTimeout(() => setStatus('idle'), 5000);
       }
     }
   };
@@ -63,22 +81,47 @@ export default function Cupon() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Correo electrónico"
-                  className="w-full px-4 py-2 md:py-3 text-sm md:text-base rounded-full border-2 border-gray-200 focus:border-green-500 outline-none transition-all"
+                  className="w-full px-4 py-2 md:py-3 text-sm md:text-base rounded-full border-2 border-gray-200 focus:border-green-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   required
+                  disabled={status === 'loading'}
                 />
 
                 <button
                   type="submit"
-                  className="w-full font-light bg-gradient-to-r from-green-600 to-green-500 text-white py-3 md:py-4 text-sm md:text-base rounded-full hover:from-green-700 hover:to-green-600 transition-all duration-300 cursor-pointer hover:scale-105 shadow-lg flex items-center justify-center space-x-2"
+                  disabled={status === 'loading'}
+                  className="w-full font-light bg-gradient-to-r from-green-600 to-green-500 text-white py-3 md:py-4 text-sm md:text-base rounded-full hover:from-green-700 hover:to-green-600 transition-all duration-300 cursor-pointer hover:scale-105 shadow-lg flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  <span>Obtener mi Cupón</span>
-                  <ChevronRight className="w-5 h-5" />
+                  {status === 'loading' ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Procesando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Obtener mi Cupón</span>
+                      <ChevronRight className="w-5 h-5" />
+                    </>
+                  )}
                 </button>
               </form>
 
-              {showSuccess && (
-                <div className="mt-4 p-4 bg-green-100 text-green-700 rounded-lg text-center animate-fade-in">
-                  ¡Tu piel te lo agradecerá! 🌿
+              {/* Mensaje de éxito */}
+              {status === 'success' && (
+                <div className="mt-4 p-4 bg-green-100 border border-green-300 text-green-700 rounded-lg text-center animate-slideUp flex items-center justify-center gap-2">
+                  <div className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center animate-bounce">
+                    <Check className="w-4 h-4 text-white" />
+                  </div>
+                  <span>{message}</span>
+                </div>
+              )}
+
+              {/* Mensaje de error */}
+              {status === 'error' && (
+                <div className="mt-4 p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg text-center animate-slideUp flex items-center justify-center gap-2">
+                  <div className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                    <X className="w-4 h-4 text-white" />
+                  </div>
+                  <span>{message}</span>
                 </div>
               )}
 

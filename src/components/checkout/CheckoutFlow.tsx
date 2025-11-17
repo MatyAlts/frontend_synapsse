@@ -38,6 +38,26 @@ const CheckoutFlow: React.FC<CheckoutFlowProps> = ({ items }) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [formData, setFormData] = useState<FormData>(emptyForm);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [appliedCoupon, setAppliedCoupon] = useState<{discount: number, code: string} | null>(null);
+
+  // Debug: verificar que los items lleguen correctamente
+  useEffect(() => {
+    console.log('🛒 CheckoutFlow - Items recibidos:', items);
+    console.log('🛒 CheckoutFlow - Cantidad de items:', items?.length || 0);
+  }, [items]);
+
+  const handleCouponApplied = (discount: number, code: string) => {
+    if (discount > 0 && code) {
+      setAppliedCoupon({discount, code});
+      console.log('🎫 Cupón aplicado:', code, 'Descuento:', discount + '%');
+      // Guardar en sessionStorage para marcar como usado después del pago
+      sessionStorage.setItem('appliedCoupon', JSON.stringify({discount, code}));
+    } else {
+      setAppliedCoupon(null);
+      console.log('🎫 Cupón removido');
+      sessionStorage.removeItem('appliedCoupon');
+    }
+  };
 
   useEffect(() => {
     const token = authService.getToken();
@@ -155,7 +175,7 @@ const CheckoutFlow: React.FC<CheckoutFlowProps> = ({ items }) => {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-        <OrderSummary items={items} />
+        <OrderSummary items={items} onCouponApplied={handleCouponApplied} />
 
         <div className="rounded-3xl shadow-sm border border-green-100 p-6 sm:p-12 bg-white/80">
           {currentStep === 2 && (
@@ -166,6 +186,7 @@ const CheckoutFlow: React.FC<CheckoutFlowProps> = ({ items }) => {
             <Payment
               items={items}
               shippingInfo={formData}
+              appliedCoupon={appliedCoupon}
             />
           )}
 

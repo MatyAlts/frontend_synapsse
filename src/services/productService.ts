@@ -31,5 +31,9 @@ export const productService = {
 
   async searchProducts(query: string, page: number = 0, size: number = 10): Promise<PagedResponse<Product>> {
     return apiGet<PagedResponse<Product>>(`/api/products/search?q=${encodeURIComponent(query)}&page=${page}&size=${size}`);
+  },
+
+  async getProductsByCategory(category: string, page: number = 0, size: number = 10): Promise<PagedResponse<Product>> {
+    return apiGet<PagedResponse<Product>>(`/api/products/by-category?category=${encodeURIComponent(category)}&page=${page}&size=${size}`);
   }
 };

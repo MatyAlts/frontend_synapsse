@@ -13,7 +13,7 @@ export default function FloatingButton({ text }: FloatingButtonProps) {
           role="button"
           className="group relative inline-flex items-center justify-center text-base rounded-full bg-gray-900 px-8 py-3 font-semibold text-white transition-all duration-200 hover:bg-gray-800 hover:shadow-lg hover:-translate-y-0.5 hover:shadow-gray-600/30"
           title="payment"
-          href="https://wa.me/5492616937588"
+          href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5492616937588'}`}
           target="_blank"
         >
           {text}

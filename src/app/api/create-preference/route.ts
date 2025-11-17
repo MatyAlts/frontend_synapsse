@@ -10,18 +10,27 @@ const preference = new Preference(client);
 
 export async function POST(request: Request) {
   try {
-    const { items, shippingInfo } = await request.json();
+    const { items, shippingInfo, coupon } = await request.json();
 
     console.log('Received items:', JSON.stringify(items, null, 2));
+    console.log('Received coupon:', coupon);
 
     const preferenceItems = items.map((item: any) => {
+      const basePrice = parseFloat(item.product?.price || item.price || 0);
+      
+      // Aplicar descuento si hay cupón
+      const finalPrice = coupon && coupon.discount > 0
+        ? basePrice * (1 - coupon.discount / 100)
+        : basePrice;
+
       const mappedItem = {
         title: item.product?.title || item.product?.name || item.title || item.name || 'Producto',
         quantity: item.quantity,
-        unit_price: parseFloat(item.product?.price || item.price || 0),
+        unit_price: parseFloat(finalPrice.toFixed(2)),
         currency_id: 'ARS',
       };
-      console.log('Mapped item:', mappedItem);
+      
+      console.log('Mapped item (with discount):', mappedItem);
       return mappedItem;
     });
 

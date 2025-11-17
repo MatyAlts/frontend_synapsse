@@ -17,9 +17,9 @@ export function useCartPersist() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     
-    // No cargar carrito en rutas de admin
-    if (pathname?.startsWith('/admin')) {
-      console.log('Skipping cart load on admin route');
+    // No cargar carrito en rutas de admin o checkout (para evitar que se recargue durante el proceso de compra)
+    if (pathname?.startsWith('/admin') || pathname?.startsWith('/checkout')) {
+      console.log('Skipping cart load on', pathname);
       return;
     }
     
@@ -136,8 +136,8 @@ export function useCartPersist() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     
-    // No guardar carrito en rutas de admin
-    if (pathname?.startsWith('/admin')) {
+    // No guardar/recargar carrito en rutas de admin o checkout
+    if (pathname?.startsWith('/admin') || pathname?.startsWith('/checkout')) {
       return;
     }
     
